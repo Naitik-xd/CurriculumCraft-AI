@@ -1,0 +1,6 @@
+{
+  "name": "CurriculumCraft AI",
+  "description": "CBSE and NCERT assessment creator, question paper generator, and step-by-step teacher marking scheme builder for Grades 9 to 12.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
