@@ -17,6 +17,7 @@ import { INITIAL_MOCK_LESSON_PLAN } from './data/initialMockLessonPlan';
 import { CURRICULUM_DATA } from './data/curriculumData';
 import { executePrint, downloadHtmlFile } from './utils/printHelper';
 import { downloadPdfFromElement } from './utils/pdfExporter';
+import { GemmaWorkingPlaceholder } from './components/GemmaWorkingPlaceholder';
 import {
   GeneratorConfig,
   GeneratedAssessment,
@@ -411,78 +412,108 @@ export default function App() {
 
                 {/* Tab Views */}
                 <div className="w-full">
-                  {assessmentTab === 'paper' && (
-                    <QuestionPaperView
-                      markdown={currentAssessment.studentPaperMarkdown}
-                      metadata={currentAssessment.config.schoolMetadata}
-                      grade={currentAssessment.grade}
+                  {isGenerating ? (
+                    <GemmaWorkingPlaceholder
+                      metadata={assessmentConfig.schoolMetadata}
+                      grade={assessmentConfig.grade}
                       subjectName={currentSubjectName}
-                      onUpdateMarkdown={newMd => {
-                        setCurrentAssessment({
-                          ...currentAssessment,
-                          studentPaperMarkdown: newMd,
-                        });
-                        showToast('Question paper updated.');
-                      }}
-                      onPrint={handlePrint}
+                      statusMessage={statusMessage}
+                      mode="assessment"
                     />
-                  )}
+                  ) : (
+                    <>
+                      {assessmentTab === 'paper' && (
+                        <QuestionPaperView
+                          markdown={currentAssessment.studentPaperMarkdown}
+                          metadata={currentAssessment.config.schoolMetadata}
+                          grade={currentAssessment.grade}
+                          subjectName={currentSubjectName}
+                          onUpdateMarkdown={newMd => {
+                            setCurrentAssessment({
+                              ...currentAssessment,
+                              studentPaperMarkdown: newMd,
+                            });
+                            showToast('Question paper updated.');
+                          }}
+                          onPrint={handlePrint}
+                        />
+                      )}
 
-                  {assessmentTab === 'marking' && (
-                    <MarkingSchemeView
-                      markdown={currentAssessment.markingSchemeMarkdown}
-                      metadata={currentAssessment.config.schoolMetadata}
-                      grade={currentAssessment.grade}
-                      subjectName={currentSubjectName}
-                      onUpdateMarkdown={newMd => {
-                        setCurrentAssessment({
-                          ...currentAssessment,
-                          markingSchemeMarkdown: newMd,
-                        });
-                        showToast('Marking scheme updated.');
-                      }}
-                      onPrint={handlePrint}
-                    />
-                  )}
+                      {assessmentTab === 'marking' && (
+                        <MarkingSchemeView
+                          markdown={currentAssessment.markingSchemeMarkdown}
+                          metadata={currentAssessment.config.schoolMetadata}
+                          grade={currentAssessment.grade}
+                          subjectName={currentSubjectName}
+                          onUpdateMarkdown={newMd => {
+                            setCurrentAssessment({
+                              ...currentAssessment,
+                              markingSchemeMarkdown: newMd,
+                            });
+                            showToast('Marking scheme updated.');
+                          }}
+                          onPrint={handlePrint}
+                        />
+                      )}
 
-                  {assessmentTab === 'blueprint' && (
-                    <BlueprintView
-                      config={currentAssessment.config}
-                      subjectName={currentSubjectName}
-                    />
-                  )}
+                      {assessmentTab === 'blueprint' && (
+                        <BlueprintView
+                          config={currentAssessment.config}
+                          subjectName={currentSubjectName}
+                        />
+                      )}
 
-                  {assessmentTab === 'markdown' && (
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
-                      <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-                        <h3 className="text-sm font-bold text-slate-900">
-                          Exportable Markdown with LaTeX Equations
-                        </h3>
-                        <button
-                          type="button"
-                          onClick={handleCopyContentMarkdown}
-                          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors"
-                        >
-                          <Copy className="w-3.5 h-3.5" />
-                          <span>Copy Full Markdown</span>
-                        </button>
-                      </div>
-                      <pre className="p-4 bg-slate-900 text-slate-100 rounded-xl overflow-x-auto text-xs font-mono max-h-[600px] leading-relaxed select-all">
-                        {`# PART 1: STUDENT QUESTION PAPER\n\n${currentAssessment.studentPaperMarkdown}\n\n# PART 2: TEACHER MARKING SCHEME\n\n${currentAssessment.markingSchemeMarkdown}`}
-                      </pre>
-                    </div>
+                      {assessmentTab === 'markdown' && (
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+                          <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                            <h3 className="text-sm font-bold text-slate-900">
+                              Exportable Markdown with LaTeX Equations
+                            </h3>
+                            <button
+                              type="button"
+                              onClick={handleCopyContentMarkdown}
+                              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                              <span>Copy Full Markdown</span>
+                            </button>
+                          </div>
+                          <pre className="p-4 bg-slate-900 text-slate-100 rounded-xl overflow-x-auto text-xs font-mono max-h-[600px] leading-relaxed select-all">
+                            {`# PART 1: STUDENT QUESTION PAPER\n\n${currentAssessment.studentPaperMarkdown}\n\n# PART 2: TEACHER MARKING SCHEME\n\n${currentAssessment.markingSchemeMarkdown}`}
+                          </pre>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </>
             ) : (
               /* MONTHLY LESSON PLAN WORKSPACE */
-              <LessonPlanView
-                lessonPlan={currentLessonPlan}
-                onUpdatePlan={updated => {
-                  setCurrentLessonPlan(updated);
-                  showToast('Lesson plan updated.');
-                }}
-              />
+              isGenerating ? (
+                <GemmaWorkingPlaceholder
+                  metadata={{
+                    schoolName: lessonPlanConfig.schoolName,
+                    examName: `MONTHLY LESSON PLAN (${lessonPlanConfig.month.toUpperCase()})`,
+                    academicSession: lessonPlanConfig.academicSession,
+                    subjectCode: '',
+                    timeAllowed: `${lessonPlanConfig.totalPeriods} Periods`,
+                    maxMarks: 100,
+                  }}
+                  grade={lessonPlanConfig.grade}
+                  subjectName={currentSubjectName}
+                  statusMessage={statusMessage}
+                  mode="lesson_plan"
+                />
+              ) : (
+                <LessonPlanView
+                  lessonPlan={currentLessonPlan}
+                  onUpdatePlan={updated => {
+                    setCurrentLessonPlan(updated);
+                    showToast('Lesson plan updated.');
+                  }}
+                  onPrint={handlePrint}
+                />
+              )
             )}
           </div>
         </div>

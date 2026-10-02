@@ -14,10 +14,34 @@ export function splitGeneratedPaper(text: string): SplitResult {
     const part2Chunk = text.slice(part2Marker);
     
     // Clean up PART 1 prefix if present
-    const cleanStudent = part1Chunk.replace(/#+\s*PART\s*1\s*:\s*STUDENT\s*QUESTION\s*PAPER\s*/i, '').trim();
+    let cleanStudent = part1Chunk.replace(/#+\s*PART\s*1\s*:\s*STUDENT\s*QUESTION\s*PAPER\s*/i, '').trim();
     // Clean up PART 2 prefix if present
     const cleanTeacher = part2Chunk.replace(/#+\s*PART\s*2\s*:\s*TEACHER\s*MARKING\s*SCHEME\s*/i, '').trim();
     
+    // Remove any duplicate school title lines at the very top of student paper
+    const lines = cleanStudent.split('\n');
+    let startIdx = 0;
+    while (startIdx < lines.length && startIdx < 12) {
+      const line = lines[startIdx].trim();
+      if (!line) {
+        startIdx++;
+        continue;
+      }
+      if (/general\s+instructions?/i.test(line) || /^section\s+[A-E]/i.test(line) || /^#{1,4}\s*section/i.test(line)) {
+        break;
+      }
+      if (/school|periodic|examination|assessment|session\s+20\d\d|candidate\s+roll|roll\s+number|class:\s+|subject:\s+|max.*marks|time\s+allowed/i.test(line)) {
+        startIdx++;
+        continue;
+      }
+      if (line === '---' || line === '***') {
+        startIdx++;
+        continue;
+      }
+      break;
+    }
+    cleanStudent = lines.slice(startIdx).join('\n').trim();
+
     return {
       studentPaper: cleanStudent,
       markingScheme: cleanTeacher,
@@ -273,6 +297,133 @@ function generateSyntheticAssessment(
 ): GeneratedAssessment {
   const chaptersTitle = chapterNames.length > 0 ? chapterNames.join(', ') : 'Comprehensive Curriculum';
   const subtopicStr = config.focusSubtopics.length > 0 ? config.focusSubtopics.join(', ') : 'Core NCERT competencies';
+  const isLanguage = /english|hindi|sanskrit|language|literature/i.test(subjectName);
+
+  if (isLanguage) {
+    const studentPaper = `
+#### GENERAL INSTRUCTIONS:
+1. All questions are compulsory. Internal choice is provided in selected questions.
+2. **Section A** contains Objective Type / Extract-Based Reference-to-Context (RTC) questions carrying 1 mark each.
+3. **Section B** contains Very Short Answer (VSA) questions carrying 2 marks each (30-40 words).
+4. **Section C** contains Short Answer (SA) questions carrying 3 marks each (40-50 words).
+5. **Section D** contains a Case-Based Literary Competency Extract carrying 4 marks with internal sub-parts.
+6. **Section E** contains Long Answer (LA) analytical questions carrying 5 marks each (100-120 words).
+
+---
+
+### SECTION A (Objective Type Questions & Extract Analysis - 1 Mark Each)
+
+**Q1.** Read the following line from **${chapterNames[0] || 'First Flight'}**:  
+*"The house — the only one in the entire valley — sat on the crest of a low hill."*  
+What does the author intend to emphasize about Lencho's dwelling through the word **'crest'**?  
+(a) It was completely hidden inside a deep forest.  
+(b) It stood solitary and exposed at the very top of the hill.  
+(c) It was surrounded by neighboring farmhouses.  
+(d) It was situated in the lowermost basin of the valley.  
+<div class="text-right font-semibold text-slate-700">[1 Mark]</div>
+
+**Q2.** Identify the poetic / literary device used in the line: *"A plague of locusts would have left more than this."*  
+(a) Metaphor  
+(b) Hyperbole  
+(c) Personification  
+(d) Onomatopoeia  
+<div class="text-right font-semibold text-slate-700">[1 Mark]</div>
+
+**Q3.** In the context of **${chaptersTitle}**, state whether the following statement is **True** or **False**:  
+*Lencho harbored deep suspicion toward the post office employees despite their collective charitable effort.*  
+<div class="text-right font-semibold text-slate-700">[1 Mark]</div>
+
+---
+
+### SECTION B (Very Short Answer Questions - 2 Marks Each)
+
+**Q4.** Why did Lencho say the raindrops were like **'new coins'**? What does this metaphor reveal about his livelihood and hopes?  
+<div class="text-right font-semibold text-slate-700">[2 Marks]</div>
+
+**Q5.** How did the postmaster react when he opened Lencho's letter? What admirable quality of the postmaster is highlighted through his subsequent actions?  
+<div class="text-right font-semibold text-slate-700">[2 Marks]</div>
+
+---
+
+### SECTION C (Short Answer Questions - 3 Marks Each)
+
+**Q6.** Analyzing **${chaptersTitle}**:  
+Explain the profound irony presented at the conclusion of the story. How does Lencho's unwavering faith in God contrast with his perception of human beings?  
+<div class="text-right font-semibold text-slate-700">[3 Marks]</div>
+
+---
+
+### SECTION D (Case-Based Competency Question - 4 Marks)
+
+**Q7. Read the following extract and answer the questions that follow:**
+
+> *"God," he wrote, "if you don't help me, my family and I will go hungry this year. I need a hundred pesos in order to sow my field again and to live until the crop comes, because the hailstorm..." He wrote 'To God' on the envelope, put the letter inside and, still troubled, went to town.*
+
+**(a)** State the immediate cause that compelled Lencho to address an appeal directly to God. **[1 Mark]**  
+**(b)** What does the phrase *"still troubled"* indicate about Lencho's psychological state? **[1 Mark]**  
+**(c)** What specific amount did Lencho request, and for what two distinct purposes? **[2 Marks]**  
+<div class="text-right font-semibold text-slate-700">[4 Marks]</div>
+
+---
+
+### SECTION E (Long Answer Question - 5 Marks)
+
+**Q8.**  
+(a) Faith is capable of moving mountains, but it must be tempered with gratitude and discernment. In the light of Lencho's experiences in **${chapterNames[0] || 'A Letter to God'}**, evaluate whether Lencho's reaction upon counting the money was justified.  
+**OR**  
+(a) Imagine you are the Postmaster who contributed a part of his salary to help a stranger. Write a diary entry expressing your feelings upon reading Lencho's second letter where he calls the postal staff *"a bunch of crooks"*.  
+<div class="text-right font-semibold text-slate-700">[5 Marks]</div>
+`;
+
+    const markingScheme = `
+# TEACHER MARKING SCHEME & STEP-BY-STEP RUBRIC
+### SUBJECT: ${subjectName.toUpperCase()} | CLASS: ${config.grade.toUpperCase()}
+**Assessment Title:** ${config.schoolMetadata.examName} &nbsp;&nbsp;|&nbsp;&nbsp; **Max Marks:** ${config.totalMarks}
+
+---
+
+### SECTION A: OBJECTIVE QUESTIONS
+**Q1.** (b) It stood solitary and exposed at the very top of the hill. [1 Mark]  
+**Q2.** (b) Hyperbole (or Metaphor, if contextualized to devastation comparison). [1 Mark]  
+**Q3.** True. Lencho labeled them 'a bunch of crooks'. [1 Mark]
+
+---
+
+### SECTION B: VERY SHORT ANSWER (2 MARKS EACH)
+**Q4.** Raindrops symbolized promising harvest and financial prosperity (5-cent and 10-cent pieces). Award 1 Mark for identifying prosperity link and 1 Mark for agricultural dependence.  
+**Q5.** Initial amusement followed by deep reverence for Lencho's immense faith. Award 1 Mark for reaction and 1 Mark for kindness/generosity trait.
+
+---
+
+### SECTION C: SHORT ANSWER (3 MARKS)
+**Q6.** The irony lies in the fact that the very employees who collected 70 pesos out of empathy were accused of stealing the remaining 30 pesos. Award 2 Marks for identifying situational irony and 1 Mark for thematic commentary on unquestioning faith vs human distrust.
+
+---
+
+### SECTION D: CASE-BASED RTC (4 MARKS)
+**Q7 (a):** Complete devastation of his ripe cornfield by the catastrophic hailstorm. [1 Mark]  
+**Q7 (b):** Deep anxiety for his family's survival coupled with desperation. [1 Mark]  
+**Q7 (c):** 100 pesos: (i) to resow the fields, (ii) to survive until the subsequent harvest arrives. [1 + 1 = 2 Marks]
+
+---
+
+### SECTION E: LONG ANSWER (5 MARKS)
+**Q8.** Content: 3 Marks (balanced evaluation of innocence vs lack of gratitude). Expression & Coherence: 1 Mark. Grammatical accuracy: 1 Mark.
+`;
+
+    return {
+      id: `assessment-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      title: `${config.grade} ${subjectName} - ${chaptersTitle}`,
+      grade: config.grade,
+      subjectName,
+      totalMarks: config.totalMarks,
+      config,
+      rawResponse: `${studentPaper}\n\n${markingScheme}`,
+      studentPaperMarkdown: studentPaper.trim(),
+      markingSchemeMarkdown: markingScheme.trim(),
+    };
+  }
 
   const studentPaper = `
 # ${config.schoolMetadata.schoolName}

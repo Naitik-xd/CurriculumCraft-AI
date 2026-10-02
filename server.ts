@@ -59,6 +59,42 @@ async function callGenAIWithFallback(fullPrompt: string, logPrefix: string): Pro
   throw new Error(lastError?.message || 'Gemma AI models exhausted without response.');
 }
 
+// Clean Part 1 of any duplicate school header blocks produced by model
+function cleanPart1Header(part1Text: string): string {
+  const lines = part1Text.split('\n');
+  let startIdx = 0;
+  // Skip initial lines if they are duplicate school name, exam title, roll number, or metadata table
+  while (startIdx < lines.length && startIdx < 15) {
+    const trimmed = lines[startIdx].trim();
+    if (!trimmed) {
+      startIdx++;
+      continue;
+    }
+    // If we reached General Instructions or Section A, stop skipping
+    if (
+      /general\s+instructions?/i.test(trimmed) ||
+      /^#{1,4}\s*section\s+[A-E]/i.test(trimmed) ||
+      /^section\s+[A-E]/i.test(trimmed)
+    ) {
+      break;
+    }
+    // If it looks like school header or metadata
+    if (
+      /school|periodic|examination|assessment|session\s+20\d\d|candidate\s+roll|roll\s+number|class:\s+|subject:\s+|max.*marks|time\s+allowed/i.test(trimmed)
+    ) {
+      startIdx++;
+      continue;
+    }
+    // Horizontal rule right after header
+    if (trimmed === '---' || trimmed === '***') {
+      startIdx++;
+      continue;
+    }
+    break;
+  }
+  return lines.slice(startIdx).join('\n').trim();
+}
+
 // Assessment generation endpoint
 app.post('/api/generate-assessment', async (req, res) => {
   try {
@@ -68,6 +104,11 @@ app.post('/api/generate-assessment', async (req, res) => {
       return res.status(400).json({ error: 'Missing assessment configuration.' });
     }
 
+    const isEnglishOrLanguage = /english|hindi|sanskrit|language|literature/i.test(subjectName || '');
+    const isMath = /math|applied mathematics/i.test(subjectName || '');
+    const isScience = /physics|chemistry|biology|science/i.test(subjectName || '');
+    const isSocialScience = /social|history|geography|political|civics|economics|business|accountancy/i.test(subjectName || '');
+
     const chaptersLabel =
       Array.isArray(chapterNames) && chapterNames.length > 0
         ? chapterNames.join(', ')
@@ -76,7 +117,11 @@ app.post('/api/generate-assessment', async (req, res) => {
     const focusSubtopicsText =
       Array.isArray(config.focusSubtopics) && config.focusSubtopics.length > 0
         ? `Focus Subtopics: ${config.focusSubtopics.join('; ')}`
-        : 'Cover all critical NCERT concepts, high-yield derivations, and standard numerical problems.';
+        : isEnglishOrLanguage
+        ? 'Focus on chapter themes, character motivations, extract-based analysis (RTC), literary devices, and author intentions.'
+        : isMath
+        ? 'Focus on core NCERT theorems, algebraic reductions, step-by-step proofs, and formula applications.'
+        : 'Cover all critical NCERT concepts, high-yield topics, and standard CBSE question patterns.';
 
     const customInstructionsText = teacherCustomPrompt && teacherCustomPrompt.trim()
       ? `\nTEACHER CUSTOM DIRECTIVES (CRITICAL - YOU MUST FOLLOW THESE SPECIFIC REQUESTS):\n${teacherCustomPrompt.trim()}\n`
@@ -84,19 +129,65 @@ app.post('/api/generate-assessment', async (req, res) => {
 
     const blendDetails: string[] = [];
     if (config.questionBlend?.includeMcq) {
-      blendDetails.push('Multiple Choice Questions (MCQs) & Assertion-Reasoning (1 mark each)');
+      blendDetails.push(
+        isEnglishOrLanguage
+          ? 'Extract-Based Objective MCQs testing vocabulary, tone, literary devices & context (1 mark each)'
+          : 'Multiple Choice Questions (MCQs) & Assertion-Reasoning (1 mark each)'
+      );
     }
     if (config.questionBlend?.includeVsa) {
-      blendDetails.push('Very Short Answer Type (2 marks each)');
+      blendDetails.push(
+        isEnglishOrLanguage
+          ? 'Short Answer Questions on character motives, plot & themes in 30-40 words (2 marks each)'
+          : 'Very Short Answer Type (2 marks each)'
+      );
     }
     if (config.questionBlend?.includeSa) {
-      blendDetails.push('Short Answer Type (3 marks each)');
+      blendDetails.push(
+        isEnglishOrLanguage
+          ? 'Analytical Short Answer Questions on poetic devices, symbolism & conflicts in 40-50 words (3 marks each)'
+          : 'Short Answer Type (3 marks each)'
+      );
     }
     if (config.questionBlend?.includeCaseStudy) {
-      blendDetails.push('Case-Based / Competency-Based Real World Scenario (4 marks with sub-parts)');
+      blendDetails.push(
+        isEnglishOrLanguage
+          ? 'Reference-to-Context (RTC) Case Study with a 4-6 line prose or poetry extract followed by 4 sub-parts (4 marks)'
+          : 'Case-Based / Competency-Based Real World Scenario (4 marks with sub-parts)'
+      );
     }
     if (config.questionBlend?.includeLa) {
-      blendDetails.push('Long Answer / Derivations / Comprehensive Numericals (5 marks each, with internal OR choice)');
+      blendDetails.push(
+        isEnglishOrLanguage
+          ? 'Long Answer Value-Based / Character Sketch Questions in 100-120 words (5 marks each, with internal OR choice)'
+          : 'Long Answer / Comprehensive Concept Questions (5 marks each, with internal OR choice)'
+      );
+    }
+
+    let subjectSpecificRules = '';
+    if (isEnglishOrLanguage) {
+      subjectSpecificRules = `
+SUBJECT DOMAIN: LANGUAGE & LITERATURE (${subjectName}).
+- STRICT PROHIBITION: Under NO circumstances generate science formulas, physics equations, chemical reactions, SI units, reaction rates, equilibrium, thermodynamics, isothermal, entropy, numericals, or mathematical derivations!
+- All questions must be 100% focused on English Literature, Reading Comprehension, Literary Devices, Vocabulary, and Character Analysis from the prescribed NCERT chapters (${chaptersLabel}).
+- Literature questions must cite characters, quotes, and themes from the prescribed texts (e.g. Lencho in 'A Letter to God', Nelson Mandela in 'Long Walk to Freedom', Robert Frost's 'Dust of Snow', etc.).
+- Marking Scheme: Allocate marks for Content (key points), Expression (coherence & vocabulary), and Accuracy (spelling & grammar).`;
+    } else if (isMath) {
+      subjectSpecificRules = `
+SUBJECT DOMAIN: MATHEMATICS (${subjectName}).
+- Formulate questions using clean LaTeX math notation ($...$ and $$...$$).
+- Include theorems, proofs, algebraic simplifications, coordinate geometry, or calculus problems matching the syllabus.
+- Marking Scheme: Detail explicit step marks for formula, intermediate substitutions, and final numerical values with units.`;
+    } else if (isScience) {
+      subjectSpecificRules = `
+SUBJECT DOMAIN: NATURAL SCIENCE (${subjectName}).
+- Balanced mix of conceptual reasoning, standard numericals with SI units, balanced chemical equations (with state symbols), and biological mechanisms.
+- Marking Scheme: Explicit step marks: Formula/Law [1 Mark], Substitution [1 Mark], Final answer with correct SI unit [1 Mark].`;
+    } else if (isSocialScience) {
+      subjectSpecificRules = `
+SUBJECT DOMAIN: SOCIAL SCIENCES / HUMANITIES (${subjectName}).
+- Focus on historical analysis, constitutional principles, geographical factors, economic indicators, and policy reasoning.
+- STRICT PROHIBITION: Do NOT generate physics or chemistry formulas or SI units.`;
     }
 
     const systemPrompt = `You are a Senior CBSE Chief Examination Setter and Master NCERT Educator with 20+ years of experience authoring official CBSE board exam papers and confidential marking schemes.
@@ -105,6 +196,8 @@ You strictly comply with the latest rationalized NCERT textbook syllabi, Nationa
 CRITICAL INSTRUCTIONS:
 1. TARGET SUBJECT: Strictly generate questions ONLY for ${subjectName} (${config.grade}). NEVER mix questions from other subjects or unrelated chapters.
 2. TARGET CHAPTERS: ${chaptersLabel}
+${subjectSpecificRules}
+
 3. OUTPUT FORMAT: You MUST separate your response into EXACTLY TWO distinct sections using these verbatim headings:
 # PART 1: STUDENT QUESTION PAPER
 (followed by the complete student test paper)
@@ -113,27 +206,25 @@ CRITICAL INSTRUCTIONS:
 (followed by the step-by-step marking rubric)
 
 4. FORMATTING FOR PART 1 (Student Question Paper):
-- School Header block with: School Name (${config.schoolMetadata?.schoolName || 'ABC PUBLIC SCHOOL'}), Examination Title, Session, Class, Subject & Code, Time Allowed, Max Marks.
-- General Instructions block (numbered 1 to 7 matching standard CBSE board patterns).
+- CRITICAL: DO NOT repeat any School Letterhead, School Name, Exam Title, or Roll Number box at the top. The UI system already prints the official school letterhead, session, and candidate roll number grid.
+- Start directly with:
+**General Instructions:**
+1. All questions are compulsory.
+2. Section A contains Objective Type questions / MCQs carrying 1 mark each...
 - Section breaks: SECTION A, SECTION B, SECTION C, SECTION D, SECTION E (as appropriate for question types).
 - Every question MUST state its mark at the end right-aligned like:
 [X Mark(s)]
-- For Assertion-Reason questions, include the official 4 options (a) Both A and R are true and R is correct explanation..., (b)... etc.
-- For Science / Math / Economics formulas, write clean inline LaTeX with $...$ (e.g. $E = mc^2$, $\\Delta T_b = i K_b m$, $\\frac{dy}{dx}$) or block LaTeX with $$...$$. Use chemical notations like $\\text{KMnO}_4$, $\\text{Zn}^{2+}$, $\\text{H}_2\\text{SO}_4$.
+- For Assertion-Reason questions (if applicable), include the standard options (a) Both A and R are true..., etc.
+- For Science / Math formulas, write clean inline LaTeX with $...$ (e.g. $E = mc^2$) or block LaTeX with $$...$$.
 - Do NOT output raw HTML tags like <div> or <span>. Use pure Markdown.
 - Include authentic internal choice ("OR") on Long Answer questions and Case Studies.
 
 5. FORMATTING FOR PART 2 (Teacher Marking Scheme):
 - Question-by-question complete answer key.
-- Explicit step-wise credit breakdown: e.g. Formula: [½ Mark], Substitution with values: [1 Mark], Final answer with correct SI units: [½ Mark].
-- Balanced chemical equations or step-by-step mathematical proofs.
+- Explicit step-wise credit breakdown: e.g. Content / Key points: [1 Mark], Expression: [1 Mark], or Formula: [1 Mark], Final value: [1 Mark].
 - "Evaluation Note / Common Pitfalls" highlighting typical student mistakes.
 
 6. Difficulty Level: ${(config.difficulty || 'standard').toUpperCase()}
-- Foundation: Direct conceptual questions, basic definitions, direct formula applications.
-- Standard CBSE Board: Balanced mix of theory, derivations, numericals, and NCERT Exemplar questions.
-- HOTS: High Order Thinking Skills, tricky conceptual applications, multi-step numericals.
-
 Total Marks: ${config.totalMarks || 25}. Ensure the sum of marks of all questions strictly equals ${config.totalMarks || 25}.`;
 
     const userPrompt = `Generate an authentic CBSE ${config.grade} ${subjectName} exam paper.
@@ -143,11 +234,6 @@ ${customInstructionsText}
 Difficulty: ${config.difficulty || 'standard'}
 Total Marks: ${config.totalMarks || 25}
 Duration: ${config.durationMinutes || 45} Minutes
-
-School Details:
-- School Name: ${config.schoolMetadata?.schoolName || 'ABC PUBLIC SCHOOL'}
-- Exam Title: ${config.schoolMetadata?.examName || 'PERIODIC ASSESSMENT'}
-- Academic Session: ${config.schoolMetadata?.academicSession || '2026-2027'}
 
 Question Typologies Included:
 ${blendDetails.map(b => `- ${b}`).join('\n')}
@@ -162,9 +248,19 @@ Generate the complete paper now strictly using the two headings:
 
     const { text, model } = await callGenAIWithFallback(fullPrompt, 'Assessment');
 
+    // Post-process to remove duplicate school header if model included one in Part 1
+    let processedText = text;
+    const part2Idx = text.search(/#+\s*PART\s*2\s*:\s*TEACHER\s*MARKING\s*SCHEME/i);
+    if (part2Idx !== -1) {
+      const part1Raw = text.slice(0, part2Idx);
+      const part2Raw = text.slice(part2Idx);
+      const part1Cleaned = cleanPart1Header(part1Raw.replace(/#+\s*PART\s*1\s*:\s*STUDENT\s*QUESTION\s*PAPER\s*/i, ''));
+      processedText = `# PART 1: STUDENT QUESTION PAPER\n\n${part1Cleaned}\n\n${part2Raw}`;
+    }
+
     res.json({
       success: true,
-      text,
+      text: processedText,
       model,
     });
   } catch (error: any) {

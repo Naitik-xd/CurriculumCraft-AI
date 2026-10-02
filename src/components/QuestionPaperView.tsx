@@ -22,6 +22,41 @@ interface QuestionPaperViewProps {
   onPrint?: () => void;
 }
 
+// Utility to clean duplicate school headers from model output
+function cleanStudentMarkdown(raw: string): string {
+  if (!raw) return '';
+  const lines = raw.split('\n');
+  let startIdx = 0;
+  while (startIdx < lines.length && startIdx < 14) {
+    const line = lines[startIdx].trim();
+    if (!line) {
+      startIdx++;
+      continue;
+    }
+    if (
+      /general\s+instructions?/i.test(line) ||
+      /^section\s+[A-E]/i.test(line) ||
+      /^#{1,4}\s*section/i.test(line)
+    ) {
+      break;
+    }
+    if (
+      /school|periodic|examination|assessment|session\s+20\d\d|candidate\s+roll|roll\s+number|class:\s+|subject:\s+|max.*marks|time\s+allowed/i.test(
+        line
+      )
+    ) {
+      startIdx++;
+      continue;
+    }
+    if (line === '---' || line === '***') {
+      startIdx++;
+      continue;
+    }
+    break;
+  }
+  return lines.slice(startIdx).join('\n').trim();
+}
+
 export const QuestionPaperView: React.FC<QuestionPaperViewProps> = ({
   markdown,
   metadata,
@@ -30,13 +65,14 @@ export const QuestionPaperView: React.FC<QuestionPaperViewProps> = ({
   onUpdateMarkdown,
   onPrint,
 }) => {
+  const cleanedMarkdown = React.useMemo(() => cleanStudentMarkdown(markdown), [markdown]);
   const [isEditing, setIsEditing] = useState(false);
-  const [editedText, setEditedText] = useState(markdown);
+  const [editedText, setEditedText] = useState(cleanedMarkdown);
   const [copied, setCopied] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   React.useEffect(() => {
-    setEditedText(markdown);
+    setEditedText(cleanStudentMarkdown(markdown));
   }, [markdown]);
 
   const handleSaveEdit = () => {
@@ -235,8 +271,8 @@ export const QuestionPaperView: React.FC<QuestionPaperViewProps> = ({
             />
           </div>
         ) : (
-          <div className="print-question-block">
-            <MathRenderer content={markdown} />
+          <div>
+            <MathRenderer content={editedText} />
           </div>
         )}
 
