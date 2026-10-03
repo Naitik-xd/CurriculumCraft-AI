@@ -26,6 +26,7 @@ import {
   FlaskConical,
   Palette,
   Users,
+  XCircle,
 } from 'lucide-react';
 
 interface SidebarConfigProps {
@@ -40,6 +41,8 @@ interface SidebarConfigProps {
   onGenerate: () => void;
   isGenerating: boolean;
   statusMessage?: string;
+  onCancelGeneration?: () => void;
+  rateLimitInfo?: { limit: number; remaining: number; resetInMinutes: number };
 }
 
 const MONTHS: AcademicMonth[] = [
@@ -67,6 +70,8 @@ export const SidebarConfig: React.FC<SidebarConfigProps> = ({
   onGenerate,
   isGenerating,
   statusMessage,
+  onCancelGeneration,
+  rateLimitInfo,
 }) => {
   const [isSchoolDetailsOpen, setIsSchoolDetailsOpen] = useState(false);
   const [subtopicInput, setSubtopicInput] = useState('');
@@ -649,11 +654,29 @@ export const SidebarConfig: React.FC<SidebarConfigProps> = ({
 
       {/* Generation Execution Button */}
       <div className="pt-2">
+        {/* Rate Limiting Quota Display (30 req / 5 hours) */}
+        {rateLimitInfo && (
+          <div className="flex items-center justify-between text-[11px] mb-2 px-1">
+            <span className="text-slate-500 font-medium">5-Hour Quota:</span>
+            <span
+              className={`font-bold px-2 py-0.5 rounded-full text-[10px] ${
+                rateLimitInfo.remaining === 0
+                  ? 'bg-rose-100 text-rose-700 border border-rose-200 animate-pulse'
+                  : rateLimitInfo.remaining <= 5
+                  ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                  : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+              }`}
+            >
+              {rateLimitInfo.remaining} / {rateLimitInfo.limit} requests left
+            </span>
+          </div>
+        )}
+
         <button
           type="button"
           onClick={onGenerate}
-          disabled={isGenerating || selectedChapterIds.length === 0}
-          className="w-full py-3.5 px-4 rounded-xl text-white font-bold text-sm bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 shadow-md shadow-indigo-500/25 active:scale-[0.99] transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
+          disabled={isGenerating || selectedChapterIds.length === 0 || (rateLimitInfo?.remaining === 0)}
+          className="w-full py-3.5 px-4 rounded-xl text-white font-bold text-sm bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 shadow-md shadow-indigo-500/25 active:scale-[0.99] transition-all disabled:opacity-50 flex items-center justify-center space-x-2 cursor-pointer"
         >
           {isGenerating ? (
             <>
@@ -662,6 +685,8 @@ export const SidebarConfig: React.FC<SidebarConfigProps> = ({
                 {mode === 'assessment' ? 'Generating Paper & Rubric...' : 'Architecting Lesson Plan...'}
               </span>
             </>
+          ) : rateLimitInfo?.remaining === 0 ? (
+            <span>5h Quota Exhausted (Resets in {rateLimitInfo.resetInMinutes}m)</span>
           ) : (
             <>
               <Sparkles className="w-4 h-4 text-amber-300" />
@@ -678,9 +703,21 @@ export const SidebarConfig: React.FC<SidebarConfigProps> = ({
           </p>
         )}
 
+        {/* Cancel Generation Button */}
+        {isGenerating && onCancelGeneration && (
+          <button
+            type="button"
+            onClick={onCancelGeneration}
+            className="w-full mt-2.5 py-2.5 px-3 rounded-xl border border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 active:scale-98 font-bold text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer shadow-xs"
+          >
+            <XCircle className="w-4 h-4 text-rose-600" />
+            <span>Cancel Generation (Save Tokens)</span>
+          </button>
+        )}
+
         <div className="mt-2 flex items-center justify-center space-x-1.5 text-[11px] text-slate-500">
           <Cpu className="w-3.5 h-3.5 text-indigo-600" />
-          <span>Server-Side Gemma 2 &bull; No API Key in Browser</span>
+          <span>Powered by Gemma 2 &bull; CBSE AI Engine</span>
         </div>
       </div>
     </aside>

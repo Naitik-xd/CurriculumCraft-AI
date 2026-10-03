@@ -95,7 +95,8 @@ export function splitGeneratedLessonPlan(text: string): { plan: string; schedule
 export async function generateAssessmentWithGemma(
   config: GeneratorConfig,
   teacherCustomPrompt?: string,
-  onStatusUpdate?: (status: string) => void
+  onStatusUpdate?: (status: string) => void,
+  signal?: AbortSignal
 ): Promise<GeneratedAssessment> {
   const gradeSubjects = CURRICULUM_DATA[config.grade] || [];
   const subject = gradeSubjects.find(s => s.id === config.subjectId);
@@ -112,6 +113,7 @@ export async function generateAssessmentWithGemma(
       headers: {
         'Content-Type': 'application/json',
       },
+      signal,
       body: JSON.stringify({
         config,
         subjectName,
@@ -141,8 +143,12 @@ export async function generateAssessmentWithGemma(
     } else {
       const errData = await response.json().catch(() => ({}));
       console.warn('API error from server:', errData);
+      throw new Error(errData?.error || 'Server error occurred during assessment generation.');
     }
-  } catch (netErr) {
+  } catch (netErr: any) {
+    if (netErr?.name === 'AbortError' || signal?.aborted) {
+      throw new Error('Generation cancelled by user.');
+    }
     console.warn('Backend call failed, using synthetic generator:', netErr);
   }
 
@@ -159,7 +165,8 @@ export async function generateAssessmentWithGemma(
 export async function generateLessonPlanWithGemma(
   config: LessonPlanConfig,
   teacherCustomPrompt?: string,
-  onStatusUpdate?: (status: string) => void
+  onStatusUpdate?: (status: string) => void,
+  signal?: AbortSignal
 ): Promise<GeneratedLessonPlan> {
   const gradeSubjects = CURRICULUM_DATA[config.grade] || [];
   const subject = gradeSubjects.find(s => s.id === config.subjectId);
@@ -176,6 +183,7 @@ export async function generateLessonPlanWithGemma(
       headers: {
         'Content-Type': 'application/json',
       },
+      signal,
       body: JSON.stringify({
         config,
         subjectName,
@@ -201,8 +209,14 @@ export async function generateLessonPlanWithGemma(
           scheduleMarkdown: schedule,
         };
       }
+    } else {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData?.error || 'Server error occurred during lesson plan generation.');
     }
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.name === 'AbortError' || signal?.aborted) {
+      throw new Error('Generation cancelled by user.');
+    }
     console.warn('Lesson plan backend call failed, falling back:', err);
   }
 

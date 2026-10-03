@@ -11,9 +11,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use(express.json({ limit: '10mb' }));
+
+// Trust proxy for accurate client IP identification on Render / Cloud Run
+app.set('trust proxy', 1);
 
 // Initialize Google Gen AI client with server-side environment key
 const ai = new GoogleGenAI({
@@ -25,11 +28,68 @@ const ai = new GoogleGenAI({
   },
 });
 
-// Candidate models: strictly open-weight Gemma models only
+// Candidate models: open-weight Gemma 2 family with graceful fallback
 const MODEL_PRIORITY = [
-  'gemma-4-26b-a4b-it',
-  'gemma-4-31b-it',
+  'gemma-2-27b-it',
+  'gemma-2-9b-it',
+  'gemini-2.5-flash',
 ];
+
+// --- Rate Limiter: Max 30 requests per 5 hours to prevent abuse & conserve tokens ---
+const RATE_LIMIT_WINDOW_MS = 5 * 60 * 60 * 1000; // 5 hours in milliseconds
+const MAX_REQUESTS_PER_WINDOW = 30; // 30 requests per 5-hour window
+
+interface RateLimitRecord {
+  count: number;
+  windowStart: number;
+}
+
+const rateLimitStore = new Map<string, RateLimitRecord>();
+
+function getClientIp(req: express.Request): string {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (typeof forwarded === 'string') {
+    return forwarded.split(',')[0].trim();
+  }
+  return req.socket.remoteAddress || '127.0.0.1';
+}
+
+function rateLimitMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const ip = getClientIp(req);
+  const now = Date.now();
+  const record = rateLimitStore.get(ip);
+
+  // If no record exists or window expired, reset
+  if (!record || (now - record.windowStart) > RATE_LIMIT_WINDOW_MS) {
+    rateLimitStore.set(ip, { count: 1, windowStart: now });
+    res.setHeader('X-RateLimit-Limit', MAX_REQUESTS_PER_WINDOW);
+    res.setHeader('X-RateLimit-Remaining', MAX_REQUESTS_PER_WINDOW - 1);
+    return next();
+  }
+
+  // Check if limit exceeded
+  if (record.count >= MAX_REQUESTS_PER_WINDOW) {
+    const remainingMs = record.windowStart + RATE_LIMIT_WINDOW_MS - now;
+    const resetHours = Math.floor(remainingMs / (60 * 60 * 1000));
+    const resetMins = Math.ceil((remainingMs % (60 * 60 * 1000)) / (60 * 1000));
+    const resetTimeFormatted = resetHours > 0 ? `${resetHours}h ${resetMins}m` : `${resetMins}m`;
+
+    res.setHeader('X-RateLimit-Limit', MAX_REQUESTS_PER_WINDOW);
+    res.setHeader('X-RateLimit-Remaining', 0);
+    res.setHeader('Retry-After', Math.ceil(remainingMs / 1000));
+    return res.status(429).json({
+      error: `Rate limit reached: Maximum 30 requests per 5 hours to protect model capacity and conserve tokens. Please retry in ${resetTimeFormatted}.`,
+      limit: MAX_REQUESTS_PER_WINDOW,
+      remaining: 0,
+      resetInMinutes: Math.ceil(remainingMs / (60 * 1000)),
+    });
+  }
+
+  record.count++;
+  res.setHeader('X-RateLimit-Limit', MAX_REQUESTS_PER_WINDOW);
+  res.setHeader('X-RateLimit-Remaining', MAX_REQUESTS_PER_WINDOW - record.count);
+  next();
+}
 
 async function callGenAIWithFallback(fullPrompt: string, logPrefix: string): Promise<{ text: string; model: string }> {
   let lastError: any = null;
@@ -95,8 +155,8 @@ function cleanPart1Header(part1Text: string): string {
   return lines.slice(startIdx).join('\n').trim();
 }
 
-// Assessment generation endpoint
-app.post('/api/generate-assessment', async (req, res) => {
+// Assessment generation endpoint with 30 req/5hr rate limiter
+app.post('/api/generate-assessment', rateLimitMiddleware, async (req, res) => {
   try {
     const { config, subjectName, chapterNames, teacherCustomPrompt } = req.body;
 
@@ -269,8 +329,8 @@ Generate the complete paper now strictly using the two headings:
   }
 });
 
-// Endpoint for Monthly Lesson Plan generation
-app.post('/api/generate-lesson-plan', async (req, res) => {
+// Endpoint for Monthly Lesson Plan generation with 30 req/5hr rate limiter
+app.post('/api/generate-lesson-plan', rateLimitMiddleware, async (req, res) => {
   try {
     const { config, subjectName, chapterNames, teacherCustomPrompt } = req.body;
 
@@ -331,6 +391,27 @@ Output using verbatim headings:
     console.error('[Google Gen AI] Lesson plan generation error:', error?.message || error);
     res.status(500).json({ error: error?.message || 'Failed to generate lesson plan.' });
   }
+});
+
+// Rate limit status endpoint
+app.get('/api/rate-limit-status', (req, res) => {
+  const ip = getClientIp(req);
+  const now = Date.now();
+  const record = rateLimitStore.get(ip);
+  if (!record || (now - record.windowStart) > RATE_LIMIT_WINDOW_MS) {
+    return res.json({
+      limit: MAX_REQUESTS_PER_WINDOW,
+      remaining: MAX_REQUESTS_PER_WINDOW,
+      resetInMinutes: 300,
+    });
+  }
+  const remaining = Math.max(0, MAX_REQUESTS_PER_WINDOW - record.count);
+  const remainingMs = Math.max(0, record.windowStart + RATE_LIMIT_WINDOW_MS - now);
+  res.json({
+    limit: MAX_REQUESTS_PER_WINDOW,
+    remaining,
+    resetInMinutes: Math.ceil(remainingMs / (60 * 1000)),
+  });
 });
 
 // Health check endpoint

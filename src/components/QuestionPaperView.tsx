@@ -22,14 +22,20 @@ interface QuestionPaperViewProps {
   onPrint?: () => void;
 }
 
-// Utility to clean duplicate school headers from model output
+// Utility to clean duplicate school headers and PART 1 markers from model output
 function cleanStudentMarkdown(raw: string): string {
   if (!raw) return '';
-  const lines = raw.split('\n');
+  // Strip "# PART 1: STUDENT QUESTION PAPER" if present anywhere
+  const unparted = raw.replace(/#+\s*PART\s*1(?:\s*:\s*STUDENT\s*QUESTION\s*PAPER)?\s*/gi, '').trim();
+  const lines = unparted.split('\n');
   let startIdx = 0;
   while (startIdx < lines.length && startIdx < 14) {
     const line = lines[startIdx].trim();
     if (!line) {
+      startIdx++;
+      continue;
+    }
+    if (/^PART\s*1\b/i.test(line)) {
       startIdx++;
       continue;
     }

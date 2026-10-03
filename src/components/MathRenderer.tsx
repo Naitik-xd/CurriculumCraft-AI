@@ -384,7 +384,7 @@ function renderInlineMathAndStyles(text: string): React.ReactNode {
 
 function renderFormatting(text: string, keyPrefix: string): React.ReactNode {
   const clean = text.replace(/&nbsp;/g, ' ');
-  const boldTokens = clean.split(/(\*\*[^*]+\*\*)/g);
+  const boldTokens = clean.split(/(\*\*[\s\S]*?\*\*)/g);
 
   return (
     <span key={keyPrefix}>
@@ -398,7 +398,7 @@ function renderFormatting(text: string, keyPrefix: string): React.ReactNode {
           );
         }
 
-        const italicTokens = token.split(/(\*[^*]+\*)/g);
+        const italicTokens = token.split(/(\*[^*]+?\*)/g);
         return (
           <React.Fragment key={`${keyPrefix}-frag-${bIdx}`}>
             {italicTokens.map((itToken, itIdx) => {

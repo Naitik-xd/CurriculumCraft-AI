@@ -96,13 +96,50 @@ export default function App() {
     }
   }, []);
 
+  const abortControllerRef = React.useRef<AbortController | null>(null);
+
+  const [rateLimitInfo, setRateLimitInfo] = useState<{ limit: number; remaining: number; resetInMinutes: number }>({
+    limit: 30,
+    remaining: 30,
+    resetInMinutes: 300,
+  });
+
+  const refreshRateLimit = async () => {
+    try {
+      const res = await fetch('/api/rate-limit-status');
+      if (res.ok) {
+        const data = await res.json();
+        setRateLimitInfo(data);
+      }
+    } catch {
+      // offline/fallback mode
+    }
+  };
+
+  useEffect(() => {
+    refreshRateLimit();
+  }, []);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
   };
 
+  const handleCancelGeneration = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsGenerating(false);
+    setStatusMessage('');
+    refreshRateLimit();
+    showToast('Generation cancelled & tokens saved.');
+  };
+
   const handleGenerate = async () => {
     setIsGenerating(true);
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     if (appMode === 'assessment') {
       setStatusMessage('Sending request to Gemma with CBSE assessment rules...');
@@ -110,7 +147,8 @@ export default function App() {
         const newAssessment = await generateAssessmentWithGemma(
           assessmentConfig,
           teacherCustomPrompt,
-          (status) => setStatusMessage(status)
+          (status) => setStatusMessage(status),
+          controller.signal
         );
 
         setCurrentAssessment(newAssessment);
@@ -121,11 +159,16 @@ export default function App() {
         setSavedPapers(updatedLib);
         localStorage.setItem(STORAGE_LIBRARY_KEY, JSON.stringify(updatedLib.slice(0, 20)));
       } catch (err: unknown) {
+        if (controller.signal.aborted) {
+          return;
+        }
         const msg = err instanceof Error ? err.message : String(err);
         showToast(`Error: ${msg}`);
       } finally {
         setIsGenerating(false);
         setStatusMessage('');
+        abortControllerRef.current = null;
+        refreshRateLimit();
       }
     } else {
       // Monthly Lesson Plan Mode
@@ -134,17 +177,23 @@ export default function App() {
         const newPlan = await generateLessonPlanWithGemma(
           lessonPlanConfig,
           teacherCustomPrompt,
-          (status) => setStatusMessage(status)
+          (status) => setStatusMessage(status),
+          controller.signal
         );
 
         setCurrentLessonPlan(newPlan);
         showToast(`Monthly Lesson Plan for ${lessonPlanConfig.month} generated successfully!`);
       } catch (err: unknown) {
+        if (controller.signal.aborted) {
+          return;
+        }
         const msg = err instanceof Error ? err.message : String(err);
         showToast(`Error: ${msg}`);
       } finally {
         setIsGenerating(false);
         setStatusMessage('');
+        abortControllerRef.current = null;
+        refreshRateLimit();
       }
     }
   };
@@ -320,9 +369,9 @@ export default function App() {
                 <span>Save to Library</span>
               </button>
             )}
-            <div className="flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-indigo-600/80 text-white border border-indigo-500/40 shadow-xs">
-              <Cpu className="w-3.5 h-3.5 text-indigo-300" />
-              <span>Gemma Server-Side Active</span>
+            <div className="flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white border border-indigo-500 shadow-xs">
+              <Cpu className="w-3.5 h-3.5 text-indigo-200" />
+              <span>Gemma 2 Powered</span>
             </div>
           </div>
         </div>
@@ -342,6 +391,8 @@ export default function App() {
             onGenerate={handleGenerate}
             isGenerating={isGenerating}
             statusMessage={statusMessage}
+            onCancelGeneration={handleCancelGeneration}
+            rateLimitInfo={rateLimitInfo}
           />
 
           {/* Right Column: Tabbed Preview Workspace */}
@@ -419,6 +470,7 @@ export default function App() {
                       subjectName={currentSubjectName}
                       statusMessage={statusMessage}
                       mode="assessment"
+                      onCancel={handleCancelGeneration}
                     />
                   ) : (
                     <>
@@ -503,6 +555,7 @@ export default function App() {
                   subjectName={currentSubjectName}
                   statusMessage={statusMessage}
                   mode="lesson_plan"
+                  onCancel={handleCancelGeneration}
                 />
               ) : (
                 <LessonPlanView
@@ -520,17 +573,30 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-16 py-6 border-t border-slate-200 bg-white/70 backdrop-blur-sm text-center text-xs text-slate-500 no-print">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <footer className="mt-16 py-8 border-t border-slate-200 bg-white/80 backdrop-blur-sm text-center text-xs text-slate-500 no-print">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-2">
             <span className="font-extrabold text-slate-800">CurriculumCraft AI</span>
             <span>&bull;</span>
             <span>Indian CBSE/NCERT Pedagogical Architecture (Grades 9–12)</span>
           </div>
+
+          <div className="flex items-center space-x-1.5 text-slate-600 font-medium">
+            <span>Made with ❤️ by</span>
+            <a
+              href="https://na1t1k.vercel.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold text-indigo-600 hover:text-indigo-800 underline underline-offset-2 transition-colors cursor-pointer"
+            >
+              naitik
+            </a>
+          </div>
+
           <div className="flex items-center space-x-3 text-slate-500">
-            <span>Server-Side Gemma AI Engine</span>
+            <span>Gemma 2 Powered</span>
             <span>&bull;</span>
-            <span>A4 Print & HTML Export Ready</span>
+            <span>A4 Print & PDF Ready</span>
           </div>
         </div>
       </footer>

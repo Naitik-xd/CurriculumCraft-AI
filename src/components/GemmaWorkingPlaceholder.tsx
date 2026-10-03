@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { SchoolMetadata } from '../types/curriculum';
-import { Sparkles, Brain, Loader2, CheckCircle2, BookOpen, Clock } from 'lucide-react';
+import { Sparkles, Brain, Loader2, CheckCircle2, Clock, XCircle } from 'lucide-react';
 
 interface GemmaWorkingPlaceholderProps {
   metadata: SchoolMetadata;
@@ -8,6 +8,7 @@ interface GemmaWorkingPlaceholderProps {
   subjectName: string;
   statusMessage?: string;
   mode?: 'assessment' | 'lesson_plan';
+  onCancel?: () => void;
 }
 
 export const GemmaWorkingPlaceholder: React.FC<GemmaWorkingPlaceholderProps> = ({
@@ -16,6 +17,7 @@ export const GemmaWorkingPlaceholder: React.FC<GemmaWorkingPlaceholderProps> = (
   subjectName,
   statusMessage,
   mode = 'assessment',
+  onCancel,
 }) => {
   const [secondsElapsed, setSecondsElapsed] = useState(0);
 
@@ -186,6 +188,23 @@ export const GemmaWorkingPlaceholder: React.FC<GemmaWorkingPlaceholderProps> = (
           {statusMessage && (
             <div className="mt-4 text-xs text-indigo-700 font-medium italic">
               &ldquo;{statusMessage}&rdquo;
+            </div>
+          )}
+
+          {/* Cancel Generation Button */}
+          {onCancel && (
+            <div className="mt-6 flex flex-col items-center">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl border border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:border-rose-400 active:scale-98 font-bold text-xs sm:text-sm transition-all shadow-xs cursor-pointer"
+              >
+                <XCircle className="w-4 h-4 text-rose-600" />
+                <span>Cancel Generation & Save Tokens</span>
+              </button>
+              <span className="text-[11px] text-slate-400 mt-1.5 font-medium">
+                Aborts model execution immediately to preserve token quotas
+              </span>
             </div>
           )}
         </div>
