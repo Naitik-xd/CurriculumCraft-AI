@@ -667,11 +667,11 @@ export default function App() {
               <div>
                 <h4 className="font-bold text-slate-800 text-sm mb-1">1. Gemma Powered Architecture</h4>
                 <p>
-                  CurriculumCraft AI operates strictly with open-weight Gemma models with priority routing:
+                  CurriculumCraft AI operates strictly with open-weight Gemma models with automatic failover:
                 </p>
                 <ul className="list-disc list-inside mt-1 space-y-0.5 text-slate-600">
-                  <li><strong className="text-slate-800">Primary Priority:</strong> <code className="bg-slate-100 px-1 py-0.5 rounded text-[11px]">gemma-4-26b-a4b-it</code>, <code className="bg-slate-100 px-1 py-0.5 rounded text-[11px]">gemma-4-31b-it</code></li>
-                  <li><strong className="text-slate-800">Secondary Fallback:</strong> <code className="bg-slate-100 px-1 py-0.5 rounded text-[11px]">gemma-2-27b-it</code>, <code className="bg-slate-100 px-1 py-0.5 rounded text-[11px]">gemma-2-9b-it</code></li>
+                  <li><strong className="text-slate-800">Primary Model:</strong> <code className="bg-slate-100 px-1 py-0.5 rounded text-[11px]">gemma-4-26b-a4b-it</code></li>
+                  <li><strong className="text-slate-800">Failover Model:</strong> <code className="bg-slate-100 px-1 py-0.5 rounded text-[11px]">gemma-4-31b-it</code></li>
                 </ul>
               </div>
 

@@ -140,6 +140,7 @@ export async function generateAssessmentWithGemma(
           markingSchemeMarkdown: markingScheme,
         };
       }
+      throw new Error('No assessment text was returned by the Gemma AI model.');
     } else {
       const errData = await response.json().catch(() => ({}));
       console.warn('API error from server:', errData);
@@ -149,14 +150,9 @@ export async function generateAssessmentWithGemma(
     if (netErr?.name === 'AbortError' || signal?.aborted) {
       throw new Error('Generation cancelled by user.');
     }
-    console.warn('Backend call failed, using synthetic generator:', netErr);
+    console.error('Backend generation error:', netErr);
+    throw new Error(netErr?.message || 'Failed to generate assessment. Please check your network and API status.');
   }
-
-  // Fallback synthesis if server is unavailable or offline
-  onStatusUpdate?.('Synthesizing curriculum-aligned CBSE assessment blueprint...');
-  await new Promise(r => setTimeout(r, 600));
-
-  return generateSyntheticAssessment(config, subjectName, chapterNames);
 }
 
 /**
@@ -209,6 +205,7 @@ export async function generateLessonPlanWithGemma(
           scheduleMarkdown: schedule,
         };
       }
+      throw new Error('No lesson plan text was returned by the Gemma AI model.');
     } else {
       const errData = await response.json().catch(() => ({}));
       throw new Error(errData?.error || 'Server error occurred during lesson plan generation.');
@@ -217,13 +214,9 @@ export async function generateLessonPlanWithGemma(
     if (err?.name === 'AbortError' || signal?.aborted) {
       throw new Error('Generation cancelled by user.');
     }
-    console.warn('Lesson plan backend call failed, falling back:', err);
+    console.error('Lesson plan generation error:', err);
+    throw new Error(err?.message || 'Failed to generate lesson plan. Please check your network and API status.');
   }
-
-  onStatusUpdate?.('Synthesizing NCERT monthly pedagogical calendar...');
-  await new Promise(r => setTimeout(r, 600));
-
-  return generateSyntheticLessonPlan(config, subjectName, chapterNames);
 }
 
 function generateSyntheticLessonPlan(

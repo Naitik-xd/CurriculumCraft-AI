@@ -11,10 +11,8 @@
 CurriculumCraft AI operates strictly with **open-weight Gemma models** (Google Gen AI SDK). Zero Gemini models are used.
 
 ### Active Model Pipeline:
-1. **Primary Priority:** `gemma-4-26b-a4b-it`
-2. **Primary Alternate:** `gemma-4-31b-it`
-3. **Secondary Fallback:** `gemma-2-27b-it`
-4. **Secondary Alternate:** `gemma-2-9b-it`
+1. **Primary Model:** `gemma-4-26b-a4b-it`
+2. **Failover Model:** `gemma-4-31b-it`
 
 Generation temperature is set to `0.2` with structured pedagogical prompts to enforce factual grounding and eliminate hallucinations.
 
