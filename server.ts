@@ -439,4 +439,11 @@ async function startServer() {
   });
 }
 
-startServer();
+// Only start standalone server if not deployed as a serverless function (e.g. Vercel)
+if (process.env.VERCEL !== '1' && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  startServer();
+}
+
+export { app };
+export default app;
+

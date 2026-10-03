@@ -43,6 +43,9 @@ import {
   CheckCircle,
   Cpu,
   CalendarDays,
+  ShieldCheck,
+  Scale,
+  X,
 } from 'lucide-react';
 
 const STORAGE_LIBRARY_KEY = 'curriculumcraft_exam_library';
@@ -75,6 +78,7 @@ export default function App() {
 
   // Saved Exam Papers Library
   const [savedPapers, setSavedPapers] = useState<GeneratedAssessment[]>([]);
+  const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
 
   // Load Library on mount
   useEffect(() => {
@@ -596,10 +600,109 @@ export default function App() {
           <div className="flex items-center space-x-3 text-slate-500">
             <span>Gemma 2 Powered</span>
             <span>&bull;</span>
-            <span>A4 Print & PDF Ready</span>
+            <button
+              type="button"
+              onClick={() => setIsLegalModalOpen(true)}
+              className="flex items-center space-x-1 font-semibold text-slate-600 hover:text-indigo-600 transition-colors cursor-pointer"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Open-Source & Legal Info</span>
+            </button>
           </div>
         </div>
       </footer>
+
+      {/* Open-Source & Legal Compliance Modal */}
+      {isLegalModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs no-print animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-xl w-full max-h-[85vh] overflow-y-auto p-6 shadow-2xl border border-slate-200 text-left">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+              <div className="flex items-center space-x-2">
+                <div className="p-2 bg-indigo-50 rounded-xl text-indigo-600">
+                  <Scale className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Legal, Safety & Open-Source Compliance</h3>
+                  <p className="text-xs text-slate-500">CurriculumCraft AI &bull; Version 2.0</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsLegalModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs text-slate-600 leading-relaxed">
+              <div className="p-3.5 bg-emerald-50/80 border border-emerald-200 rounded-xl">
+                <p className="font-bold text-emerald-900 flex items-center space-x-1.5 mb-1">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <span>100% Open-Source AI Project</span>
+                </p>
+                <p className="text-emerald-800">
+                  This project is released under the permissive <strong>MIT License</strong> by{' '}
+                  <a
+                    href="https://na1t1k.vercel.app"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold underline"
+                  >
+                    Naitik
+                  </a>
+                  . You are free to inspect, modify, fork, host, and deploy it for educational and commercial purposes.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-slate-800 text-sm mb-1">1. Powered by Open-Weight Gemma 2</h4>
+                <p>
+                  CurriculumCraft AI utilizes Google&apos;s open-weight Gemma 2 model family (<code className="bg-slate-100 px-1 py-0.5 rounded text-[11px]">gemma-2-27b-it</code> / <code className="bg-slate-100 px-1 py-0.5 rounded text-[11px]">gemma-2-9b-it</code>). Gemma models are openly released under the permissive Gemma Terms of Use.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-slate-800 text-sm mb-1">2. Copyright & Content Safety</h4>
+                <p>
+                  Every assessment question, marking rubric, and lesson plan is algorithmically synthesized on demand. No questions are copied from copyrighted proprietary textbooks, private question banks, or publisher materials.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-slate-800 text-sm mb-1">3. Public Domain Educational Standards</h4>
+                <p>
+                  All curriculum subject names, unit taxonomies, and question blueprints are based on publicly published educational frameworks issued by the Central Board of Secondary Education (CBSE) and NCERT in alignment with the National Education Policy (NEP 2020). References to CBSE and NCERT are used under nominative fair use.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-slate-800 text-sm mb-1">4. Token & Abuse Protection</h4>
+                <p>
+                  Protected by a rate limiting system restricting usage to <strong>30 requests per 5-hour window</strong> per client IP to safeguard model capacity and prevent token abuse.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-slate-800 text-sm mb-1">5. Zero Key Exposure</h4>
+                <p>
+                  API credentials remain 100% server-side on your hosting environment (Vercel / Render). The client browser never receives or transmits API secret keys.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 pt-3 border-t border-slate-100 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsLegalModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors cursor-pointer"
+              >
+                Close & Return
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
