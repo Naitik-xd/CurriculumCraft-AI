@@ -108,7 +108,7 @@ export const GemmaWorkingPlaceholder: React.FC<GemmaWorkingPlaceholderProps> = (
 
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-100/80 text-indigo-800 text-xs font-bold mb-2">
             <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-            <span>Gemma 4 AI Engine</span>
+            <span>Gemma Powered</span>
           </div>
 
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">

@@ -375,7 +375,7 @@ export default function App() {
             )}
             <div className="flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white border border-indigo-500 shadow-xs">
               <Cpu className="w-3.5 h-3.5 text-indigo-200" />
-              <span>Gemma 2 Powered</span>
+              <span>Gemma Powered</span>
             </div>
           </div>
         </div>
@@ -578,36 +578,45 @@ export default function App() {
 
       {/* Footer */}
       <footer className="mt-16 py-8 border-t border-slate-200 bg-white/80 backdrop-blur-sm text-center text-xs text-slate-500 no-print">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center space-x-2">
-            <span className="font-extrabold text-slate-800">CurriculumCraft AI</span>
-            <span>&bull;</span>
-            <span>Indian CBSE/NCERT Pedagogical Architecture (Grades 9–12)</span>
+        <div className="max-w-7xl mx-auto px-4 flex flex-col items-center space-y-3">
+          <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center space-x-2">
+              <span className="font-extrabold text-slate-800">CurriculumCraft AI</span>
+              <span>&bull;</span>
+              <span>Indian CBSE/NCERT Pedagogical Architecture (Grades 9–12)</span>
+            </div>
+
+            <div className="flex items-center space-x-1.5 text-slate-600 font-medium">
+              <span>Made with ❤️ by</span>
+              <a
+                href="https://na1t1k.vercel.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-indigo-600 hover:text-indigo-800 underline underline-offset-2 transition-colors cursor-pointer"
+              >
+                naitik
+              </a>
+            </div>
+
+            <div className="flex items-center space-x-3 text-slate-500">
+              <span>Gemma Powered</span>
+              <span>&bull;</span>
+              <button
+                type="button"
+                onClick={() => setIsLegalModalOpen(true)}
+                className="flex items-center space-x-1 font-semibold text-slate-600 hover:text-indigo-600 transition-colors cursor-pointer"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Open-Source & Legal Info</span>
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center space-x-1.5 text-slate-600 font-medium">
-            <span>Made with ❤️ by</span>
-            <a
-              href="https://na1t1k.vercel.app"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-bold text-indigo-600 hover:text-indigo-800 underline underline-offset-2 transition-colors cursor-pointer"
-            >
-              naitik
-            </a>
-          </div>
-
-          <div className="flex items-center space-x-3 text-slate-500">
-            <span>Gemma 2 Powered</span>
-            <span>&bull;</span>
-            <button
-              type="button"
-              onClick={() => setIsLegalModalOpen(true)}
-              className="flex items-center space-x-1 font-semibold text-slate-600 hover:text-indigo-600 transition-colors cursor-pointer"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Open-Source & Legal Info</span>
-            </button>
+          <div className="w-full pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-400 gap-1">
+            <span>Built for Hacktoberfest 2026</span>
+            <span className="text-amber-700 font-medium">
+              Public Beta: Please exercise academic review on generated assessments prior to official classroom administration.
+            </span>
           </div>
         </div>
       </footer>
@@ -623,7 +632,7 @@ export default function App() {
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-slate-900">Legal, Safety & Open-Source Compliance</h3>
-                  <p className="text-xs text-slate-500">CurriculumCraft AI &bull; Version 2.0</p>
+                  <p className="text-xs text-slate-500">CurriculumCraft AI &bull; Version 2.0 &bull; Hacktoberfest 2026</p>
                 </div>
               </div>
               <button
@@ -650,16 +659,20 @@ export default function App() {
                     className="font-bold underline"
                   >
                     Naitik
-                  </a>
-                  . You are free to inspect, modify, fork, host, and deploy it for educational and commercial purposes.
+                  </a>{' '}
+                  for Hacktoberfest 2026. You are free to inspect, modify, fork, host, and deploy it for educational and commercial purposes.
                 </p>
               </div>
 
               <div>
-                <h4 className="font-bold text-slate-800 text-sm mb-1">1. Powered by Open-Weight Gemma 2</h4>
+                <h4 className="font-bold text-slate-800 text-sm mb-1">1. Gemma Powered Architecture</h4>
                 <p>
-                  CurriculumCraft AI utilizes Google&apos;s open-weight Gemma 2 model family (<code className="bg-slate-100 px-1 py-0.5 rounded text-[11px]">gemma-2-27b-it</code> / <code className="bg-slate-100 px-1 py-0.5 rounded text-[11px]">gemma-2-9b-it</code>). Gemma models are openly released under the permissive Gemma Terms of Use.
+                  CurriculumCraft AI operates strictly with open-weight Gemma models with priority routing:
                 </p>
+                <ul className="list-disc list-inside mt-1 space-y-0.5 text-slate-600">
+                  <li><strong className="text-slate-800">Primary Priority:</strong> <code className="bg-slate-100 px-1 py-0.5 rounded text-[11px]">gemma-4-26b-a4b-it</code>, <code className="bg-slate-100 px-1 py-0.5 rounded text-[11px]">gemma-4-31b-it</code></li>
+                  <li><strong className="text-slate-800">Secondary Fallback:</strong> <code className="bg-slate-100 px-1 py-0.5 rounded text-[11px]">gemma-2-27b-it</code>, <code className="bg-slate-100 px-1 py-0.5 rounded text-[11px]">gemma-2-9b-it</code></li>
+                </ul>
               </div>
 
               <div>
@@ -670,9 +683,12 @@ export default function App() {
               </div>
 
               <div>
-                <h4 className="font-bold text-slate-800 text-sm mb-1">3. Public Domain Educational Standards</h4>
+                <h4 className="font-bold text-slate-800 text-sm mb-1">3. NCERT Textbook Copyright & Fair Use Policy</h4>
                 <p>
-                  All curriculum subject names, unit taxonomies, and question blueprints are based on publicly published educational frameworks issued by the Central Board of Secondary Education (CBSE) and NCERT in alignment with the National Education Policy (NEP 2020). References to CBSE and NCERT are used under nominative fair use.
+                  NCERT textbooks are copyrighted by the National Council of Educational Research and Training. CurriculumCraft AI <strong>does NOT</strong> republish, distribute, or copy verbatim textbook pages or proprietary exercise solutions.
+                </p>
+                <p className="mt-1">
+                  Instead, the platform references non-copyrightable public educational syllabi and learning taxonomies published by CBSE to author 100% original, newly synthesized examination items.
                 </p>
               </div>
 

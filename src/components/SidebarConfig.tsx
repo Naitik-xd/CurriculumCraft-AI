@@ -717,7 +717,7 @@ export const SidebarConfig: React.FC<SidebarConfigProps> = ({
 
         <div className="mt-2 flex items-center justify-center space-x-1.5 text-[11px] text-slate-500">
           <Cpu className="w-3.5 h-3.5 text-indigo-600" />
-          <span>Powered by Gemma 2 &bull; CBSE AI Engine</span>
+          <span>Gemma Powered &bull; CBSE AI Engine</span>
         </div>
       </div>
     </aside>

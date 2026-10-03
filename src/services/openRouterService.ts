@@ -105,7 +105,7 @@ export async function generateAssessmentWithGemma(
     .filter(ch => config.selectedChapterIds.includes(ch.id))
     .map(ch => ch.name);
 
-  onStatusUpdate?.('Dispatching to Google Gen AI SDK (open-weight Gemma 2 / 4)...');
+  onStatusUpdate?.('Dispatching to Google Gen AI SDK (Gemma Powered)...');
 
   try {
     const response = await fetch('/api/generate-assessment', {

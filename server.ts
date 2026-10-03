@@ -28,11 +28,12 @@ const ai = new GoogleGenAI({
   },
 });
 
-// Candidate models: open-weight Gemma 2 family with graceful fallback
+// Candidate models: strictly open-weight Gemma models with Gemma 4 on primary priority, Gemma 2 on secondary fallback (NO Gemini models)
 const MODEL_PRIORITY = [
+  'gemma-4-26b-a4b-it',
+  'gemma-4-31b-it',
   'gemma-2-27b-it',
   'gemma-2-9b-it',
-  'gemini-2.5-flash',
 ];
 
 // --- Rate Limiter: Max 30 requests per 5 hours to prevent abuse & conserve tokens ---
@@ -101,8 +102,8 @@ async function callGenAIWithFallback(fullPrompt: string, logPrefix: string): Pro
         model,
         contents: fullPrompt,
         config: {
-          temperature: 0.3,
-          maxOutputTokens: 3000,
+          temperature: 0.2,
+          maxOutputTokens: 3500,
         },
       });
 
@@ -257,6 +258,13 @@ CRITICAL INSTRUCTIONS:
 1. TARGET SUBJECT: Strictly generate questions ONLY for ${subjectName} (${config.grade}). NEVER mix questions from other subjects or unrelated chapters.
 2. TARGET CHAPTERS: ${chaptersLabel}
 ${subjectSpecificRules}
+
+ANTI-HALLUCINATION & FACTUAL ACCURACY MANDATE:
+- All questions MUST be strictly grounded in the authentic NCERT syllabus for ${subjectName} (${config.grade}).
+- Do NOT hallucinate non-existent NCERT topics, fictional experiments, false historical accounts, or fabricated literary quotes.
+- For literature, cite genuine prescribed NCERT textbook characters, author names, and themes from: ${chaptersLabel}.
+- For science & mathematics, ensure all chemical formulas, physics laws, and mathematical equations are verified, standard, and solvable.
+- Ensure the total marks of all questions strictly equals ${config.totalMarks || 25}.
 
 3. OUTPUT FORMAT: You MUST separate your response into EXACTLY TWO distinct sections using these verbatim headings:
 # PART 1: STUDENT QUESTION PAPER
